@@ -1,0 +1,23 @@
+name: cola
+channels:
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - ffmpeg
+  - pip
+  - python=3.10
+  - python-dateutil
+  - pytorch
+  - torchvision
+  - pip:
+    - accelerate
+    - tqdm
+    - wandb
+    - datasets
+    - transformers
+    - loguru
+    - sentencepiece
+    - sentence_transformers
+    - seaborn
+    - git+https://github.com/openai/CLIP.git

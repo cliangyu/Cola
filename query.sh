@@ -1,0 +1,2 @@
+export CUDA_VISIBLE_DEVICES=3
+python query/query_blip.py --data-dir ./datasets/ --dataset-name clevr --split train --vlm-task vqa --bs 128 --prediction-out ./predictions/clevr_insblipt5xxl_vqa_train-da.json
