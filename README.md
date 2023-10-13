@@ -145,7 +145,7 @@ python evaluation/eval_predictions.py \
 ```shell
 # Get the plausible answers and captions for both training and validation sets (see Step 1 and 2 of Inference)
 
-# 1. Finetune the language model, Cola-FT. Delete "--include-choices" for direct answer datasets.
+# 1. Finetune the language model, Cola-FT. Delete "--include-choices" for direct answer datasets. Need to "wandb login" before finetuning.
 export MODEL_NAME=aok_blip_ofa_ft
 WANDB_RUN_ID=${MODEL_NAME} python finetune/finetune.py \
 --data-dir ./datasets/ --dataset-name aokvqa --split train --val-split val \
@@ -176,4 +176,4 @@ url={https://openreview.net/forum?id=kdHpWogtX6Y}
 
 ## 🙏 Acknowledgements
 
-Evaluation code is borrowed from [aokvqa](https://github.com/allenai/aokvqa).
+Evaluation code is borrowed from [aokvqa](https://github.com/allenai/aokvqa). Part of this README is borrowed from [visual_prompt_retrieval](https://github.com/ZhangYuanhan-AI/visual_prompt_retrieval).
