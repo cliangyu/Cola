@@ -1,16 +1,10 @@
-import re
 import torch
 import os
-import random
 import json
 from pathlib import Path
-from tqdm import tqdm
-from PIL import Image
 import numpy as np
 import time
 import wandb
-import torch.multiprocessing as multiprocessing
-from queue import Queue
 from utils import (
     parse_args,
     prompt_element,
@@ -26,7 +20,6 @@ from data import VisualReasoningDataset, custom_collate, load_dataset
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from loguru import logger
-import gc
 import sys
 
 logger.remove()
