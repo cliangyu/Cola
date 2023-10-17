@@ -28,9 +28,7 @@ from transformers.optimization import Adafactor, AdafactorSchedule
 
 from data import VisualReasoningDataset, custom_collate, load_dataset
 from torch.utils.data import DataLoader
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-from model import T5OnSpecificDevices
-
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from loguru import logger
 import gc
 import sys
@@ -88,11 +86,7 @@ def train(
             vlm1_answers=kwargs["vlm1_answers_train"],
         )
         prompts = extend_prompts(prompts, current_questions)
-        input_ids, attention_mask = preprocess_language(
-            tokenizer,
-            prompts,
-            device=device,
-        )
+        
         if args.include_rationale:
             targets = create_prompt(data, "Rationale:")
 
@@ -124,39 +118,18 @@ def train(
                 targets = [item["direct_answers"][0] for item in data]
             else:
                 targets = extract_group(data, "mc_answer")
-        gt_labels, gt_attention_mask = preprocess_language(
+                
+        question_and_answer = extend_prompts(prompts, targets)   
+        input_ids, attention_mask = preprocess_language(
             tokenizer,
-            targets,
-            device="cuda",
+            question_and_answer,
+            device=device,
         )
+        
         outputs = model(
-            input_ids=input_ids, attention_mask=attention_mask, labels=gt_labels
+            input_ids=input_ids, attention_mask=attention_mask, labels=masking(input_ids)
         )
         loss = outputs.loss
-
-        if args.answer_factor is not None:
-            separator_index = torch.where(
-                gt_labels == tokenizer.convert_tokens_to_ids(separator)
-            )[1]
-            # rationale_logits = lm_logits.clone()
-            # rationale_gt_labels = gt_labels.clone()
-            # # mask out rationale_gt_labels after the separator_index
-            # for sample in range(args.bs):
-            #     rationale_gt_labels[sample, separator_index[sample]:] = -100
-            # loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100)
-            # rationale_loss = loss_fct(rationale_logits.view(-1, rationale_logits.size(-1)), rationale_gt_labels.view(-1))
-            # mask out logits before the separator token
-            answer_logits = outputs.logits.clone()
-            answer_gt_labels = gt_labels.clone()
-            loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100)
-            for sample in range(args.bs):
-                answer_gt_labels[sample, : separator_index[sample]] = -100
-            answer_loss = loss_fct(
-                answer_logits.view(-1, answer_logits.size(-1)),
-                answer_gt_labels.view(-1),
-            )
-            # loss = rationale_loss + answer_loss * args.answer_factor
-            loss = loss + answer_loss * args.answer_factor
 
         if idx % 10 == 0:
             wandb.log({"Training Loss": loss.item()})
@@ -174,6 +147,30 @@ def train(
         if ((idx + 1) % args.ACCUM_ITER == 0) or (idx + 1 == len(loader)):
             optimizer.step()
             optimizer.zero_grad()
+        
+
+def masking(input_ids, masking_number: int = -100):  
+    # hardcoded for mistral to find "A:" that breaks the question/answer
+    labels = masking_number * torch.ones(input_ids.shape, dtype=torch.int64).to('cuda', non_blocking=True)
+    
+    for i in range(input_ids.shape[0]):
+        # Find all occurrences of the pattern 28741, 28747
+        occurrences = 0
+        for j in range(input_ids.shape[1] - 1):
+            if input_ids[i][j] == 28741 and input_ids[i][j + 1] == 28747:
+                occurrences += 1
+
+        # Assert that the pattern exists only once
+        assert occurrences == 1, f"Pattern [28741, 28747] found {occurrences} times in sample {i}"
+
+        # Find the breakpoint where we have the 2 consecutive tokens 28741, 28747
+        for j in range(input_ids.shape[1] - 1):
+            if input_ids[i][j] == 28741 and input_ids[i][j + 1] == 28747:
+                breakpoint = j + 2
+                labels[i][breakpoint:] = input_ids[i][breakpoint:]
+                break
+                
+    return labels
 
 
 def validate(
@@ -243,7 +240,7 @@ def validate(
             input_ids, attention_mask = preprocess_language(
                 tokenizer, prompts, device=device
             )
-            flan_start_time = time.time()
+            llm_start_time = time.time()
             outputs = model.generate(
                 input_ids,
                 attention_mask=attention_mask,
@@ -251,18 +248,18 @@ def validate(
                 early_stopping=False,
                 no_repeat_ngram_size=3,
             )
-            flan_end_time = time.time()
-            flan_1st_responses = tokenizer.batch_decode(
+            llm_end_time = time.time()
+            llm_1st_responses = tokenizer.batch_decode(
                 outputs, skip_special_tokens=True
             )
             logger.info(
-                f"Batch: {counter}\tFLAN_1 time: {flan_end_time - flan_start_time}"
+                f"Batch: {counter}\tllm_1 time: {llm_end_time - llm_start_time}"
             )
             # Add data to queue
             for i in range(len(group)):
-                group[i]["flan_1st_response"] = flan_1st_responses[i]
+                group[i]["llm_1st_response"] = llm_1st_responses[i]
                 group[i]["prompt"] = prompts[i]
-                total_predictions[group[i]["question_id"]] = flan_1st_responses[i]
+                total_predictions[group[i]["question_id"]] = llm_1st_responses[i]
             counter += 1
         assert len(total_predictions) == len(val_set)
         prediction_file_path = os.path.join(
@@ -300,10 +297,12 @@ def main():
     torch.manual_seed(args.SEED)  # pytorch random seed
     np.random.seed(args.SEED)  # numpy random seed
     torch.backends.cudnn.deterministic = True
-    wandb.init(config=args, project="fine_tune_flan", entity="liangyu")
+    wandb.init(config=args, project="fine_tune_llm", entity="liangyu")
 
     # tokenzier for encoding the text
-    tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-small")
+    tokenizer = AutoTokenizer.from_pretrained(args.llm, padding_side='left')
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
     # Creating the Training and Validation dataset
     train_set = VisualReasoningDataset(
@@ -347,22 +346,11 @@ def main():
     val_loader = DataLoader(val_set, **val_params)
     logger.info("Training and Validation Dataloaders are created.")
 
-    model = T5ForConditionalGeneration.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         args.llm,
-        #    torch_dtype=torch.bfloat16
+        torch_dtype=torch.bfloat16,
+        device_map='auto'
     )
-
-    if args.peft:
-        from transformers.adapters import IA3Config
-
-        adapter_name = "ia3_adapter"
-        adapter_config = IA3Config()
-        model.add_adapter(adapter_name, config=adapter_config)
-        model.parallelize()
-        model.train_adapter(adapter_name)
-        model.set_active_adapters(adapter_name)
-    else:
-        model.parallelize()
 
     # Defining the optimizer that will be used to tune the weights of the network in the training session.
     optimizer = Adafactor(

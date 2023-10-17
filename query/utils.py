@@ -19,8 +19,7 @@ def parse_args():
     )
     parser.add_argument("--val-split", type=str, choices=["train", "val", "test"])
     parser.add_argument("--vlm-task", type=str, choices=["caption", "vqa"])
-    parser.add_argument("--ofa-model-path", type=str, default=None)
-    parser.add_argument("--blip-model-path", type=str, default=None)
+    parser.add_argument("--vlm-model-path", type=str, default=None)
     parser.add_argument("--num-examples", type=int, default=0)
     parser.add_argument(
         "--k-shot-finetuning",
@@ -36,7 +35,7 @@ def parse_args():
     parser.add_argument("--train-context", type=str, dest="train_context_file")
     parser.add_argument("--context", type=str, dest="context_file")
     parser.add_argument("--prefix", type=str, default="", dest="prompt_prefix")
-    parser.add_argument("--flan", type=str, default="google/flan-t5-xxl")
+    parser.add_argument("--llm", type=str, default="google/flan-t5-xxl")
     parser.add_argument("--vlm1", type=str, default="blip")
     parser.add_argument("--vlm2", type=str, default="ofa")
     parser.add_argument("--adapter-name", type=str, default=None)
@@ -53,7 +52,7 @@ def parse_args():
     parser.add_argument("--model-output-dir", type=str, default="./pretrained_models")
     parser.add_argument("--all-out", type=str, dest="all_output_file")
     parser.add_argument(
-        "--max-length",
+        "--max-new-tokens",
         default=50,
         type=int,
         help="Max length of the generated answers, set small for VQA to avoid rubbish answers",
@@ -155,9 +154,9 @@ def prompt_element(
     return prompt
 
 
-def preprocess_language(flan_tokenizer, text, device="cuda:0"):
-    inputs_dict = flan_tokenizer.batch_encode_plus(
-        text, padding=True, truncation=True, return_tensors="pt"
+def preprocess_language(tokenizer, text, device="cuda:0"):
+    inputs_dict = tokenizer.batch_encode_plus(
+        text, padding=True, return_tensors="pt"
     )
     input_ids = inputs_dict.input_ids.to(
         device

@@ -21,7 +21,7 @@ from utils import (
 
 from data import VisualReasoningDataset, custom_collate, load_dataset
 from torch.utils.data import DataLoader
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from loguru import logger
 import gc
 import sys
@@ -35,8 +35,7 @@ logger.add(
 )
 
 
-def run_flan(args):
-    # wandb.init(project="aokvqa", config=args)
+def run_llm(args):
     train_set = VisualReasoningDataset(
         dataset_dir=args.data_dir,
         dataset_name=args.dataset_name,
@@ -66,13 +65,15 @@ def run_flan(args):
         with open(args.train_context_file, "r") as f:
             train_context = json.load(args.train_context_file)
 
-    # Initiate FLAN model and tokenizer
-    flan_device = "cuda:{}".format(str(0))
-    flan_tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-small")
-    flan_model = T5ForConditionalGeneration.from_pretrained(args.llm)
+    # Initiate llm model and tokenizer
+    # llm_device = "cuda:{}".format(str(0))
+    llm_device = "cuda"
+    llm_model = AutoModelForCausalLM.from_pretrained(args.llm, device_map='auto', torch_dtype=torch.float16 ).to(llm_device)
+    llm_tokenizer = AutoTokenizer.from_pretrained(args.llm, padding_side='left')
+    if llm_tokenizer.pad_token is None:
+        llm_tokenizer.pad_token = llm_tokenizer.eos_token
     if args.adapter_name is not None:
-        flan_model.load_adapter(args.adapter_name, set_active=True)
-    flan_model.parallelize()  # Use this line instead of device_map="auto" for T5 models, very weird bug...
+        llm_model.load_adapter(args.adapter_name, set_active=True)
 
     with open(
         f"{args.prediction_output_dir}/{args.dataset_name}_{args.vlm1}_vqa_train-da.json",
@@ -114,14 +115,11 @@ def run_flan(args):
         "r",
     ) as profile:  # hard code
         vlm2_captions_val = json.load(profile)
-    # with open('predictions/fx_rationalization_train-da.json', 'r') as profile: # hard code
-    #     rationalization_train = json.load(profile)
     total_predictions = {}
     counter = 0
 
     for group in dataloader:
         prompts = create_prompt(group, args.prompt_prefix)
-        # prompts = extend_prompts(prompts, "Answer the following multiple choice question by reasoning step by step. vlm2 and vlm1 are two different vision-language models to help you answer this visual question. First, state your rationale based on vlm2 and vlm1's description and their answers to the visual question. Then give the final answer.\n")
 
         if args.incontext:
             for idx, e in enumerate(
@@ -144,7 +142,6 @@ def run_flan(args):
                         vlm2_captions=vlm2_captions_train,
                         vlm1_captions=vlm1_captions_train,
                         cot=False,
-                        # rationalization=rationalization_train,
                     ),
                 )
                 prompts = extend_prompts(prompts, "\n\n")
@@ -165,7 +162,6 @@ def run_flan(args):
                 vlm2_captions=vlm2_captions_val,
                 vlm1_captions=vlm1_captions_val,
                 cot=args.cot,
-                # rationalization=rationalization_train, # placeholder
             ),
         )
         if args.cot:
@@ -173,11 +169,11 @@ def run_flan(args):
             cot = "Answer in the following format: \n[YOUR RATIONALE]. The answer is [YOUR CHOICE]."
             prompts = extend_prompts(prompts, cot)
         input_ids, attention_mask = preprocess_language(
-            flan_tokenizer, prompts, device=flan_device
+            llm_tokenizer, prompts, device=llm_device
         )
-        flan_start_time = time.time()
+        llm_start_time = time.time()
         if args.num_return_sequences == 1:  # beam search (greedy decoding)
-            outputs = flan_model.generate(
+            outputs = llm_model.generate(
                 input_ids,
                 attention_mask=attention_mask,
                 max_new_tokens=args.max_new_tokens,
@@ -185,34 +181,33 @@ def run_flan(args):
                 no_repeat_ngram_size=3,
             )
         if args.num_return_sequences > 1:  # diverse sampling
-            outputs = flan_model.generate(
+            outputs = llm_model.generate(
                 input_ids,
                 attention_mask=attention_mask,
                 max_new_tokens=args.max_new_tokens,
                 early_stopping=False,
                 no_repeat_ngram_size=3,
                 num_return_sequences=args.num_return_sequences,
-                # num_beams=args.num_return_sequences, # should be the same as num_return_sequences or larger
                 do_sample=True,
                 top_k=50,
                 top_p=0.95,
             )
-        flan_end_time = time.time()
-        flan_1st_responses_ungrouped = flan_tokenizer.batch_decode(
-            outputs, skip_special_tokens=True
+        llm_end_time = time.time()
+        llm_1st_responses_ungrouped = llm_tokenizer.batch_decode(
+            outputs[:, input_ids.shape[1]:], skip_special_tokens=True
         )
-        logger.info(f"Batch: {counter}\tFLAN_1 time: {flan_end_time - flan_start_time}")
+        logger.info(f"Batch: {counter}\tllm_1 time: {llm_end_time - llm_start_time}")
 
         # group every args.num_return_sequences together
         if args.num_return_sequences == 1:
-            flan_1st_responses = flan_1st_responses_ungrouped
+            llm_1st_responses = llm_1st_responses_ungrouped
         else:  # return multiple responses as a list
-            flan_1st_responses = []
+            llm_1st_responses = []
             for i in range(
-                len(flan_1st_responses_ungrouped) // args.num_return_sequences
+                len(llm_1st_responses_ungrouped) // args.num_return_sequences
             ):
-                flan_1st_responses.append(
-                    flan_1st_responses_ungrouped[
+                llm_1st_responses.append(
+                    llm_1st_responses_ungrouped[
                         i
                         * args.num_return_sequences : (i + 1)
                         * args.num_return_sequences
@@ -221,9 +216,9 @@ def run_flan(args):
 
         # Add data to queue
         for i in range(len(group)):
-            group[i]["flan_1st_response"] = flan_1st_responses[i]
+            group[i]["llm_1st_response"] = llm_1st_responses[i]
             group[i]["prompt"] = prompts[i]
-            total_predictions[group[i]["question_id"]] = flan_1st_responses[i]
+            total_predictions[group[i]["question_id"]] = llm_1st_responses[i]
         counter += 1
 
     assert len(total_predictions) == len(dataloader.dataset)
@@ -235,4 +230,4 @@ def run_flan(args):
 if __name__ == "__main__":
     random.seed(0)
     args = parse_args()
-    run_flan(args)
+    run_llm(args)

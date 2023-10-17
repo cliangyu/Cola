@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<h1>🥤 Cola [NeurIPS 2023] </br> Language Models are Visual Reasoning Coordinators</h1>
+<h2>🥤 Cola [NeurIPS 2023] </br> Large Language Models are Visual Reasoning Coordinators</h2>
 
 <div align="center">
     <a href='https://cliangyu.com/' target='_blank'>Liangyu Chen<sup>*,†,♥</sup></a>&emsp;
@@ -103,18 +103,21 @@ git lfs clone https://huggingface.co/OFA-Sys/ofa-large
 
 python query/query_blip.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_blip_vqa_val-da.json
 
-python query/query_ofa.py --ofa-model-path ../OFA-large --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_ofa_vqa_val-da.json
+python query/query_ofa.py --vlm-model-path ../OFA-large --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_ofa_vqa_val-da.json
 
 # 2. Get the captions for the validation set
 
 python query/query_blip.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task caption --bs 128 --prediction-out ./predictions/aokvqa_blip_caption_val-da.json
 
-python query/query_ofa.py --ofa-model-path ../OFA-large --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task caption --bs 128 --prediction-out ./predictions/aokvqa_ofa_caption_val-da.json
+python query/query_ofa.py --vlm-model-path ../OFA-large --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task caption --bs 128 --prediction-out ./predictions/aokvqa_ofa_caption_val-da.json
 
 
 # 3. Query the language model, Cola-Zero. Delete "--incontext --num-examples 2" for 0-shot inference.
 
-python query/query_flan.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_cola0-da.json --max-length 250 --flan google/flan-t5-xxl --vlm1 blip --vlm2 ofa --include-profile --include-caption --incontext --num-examples 2
+python query/query_flan.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_cola2-da.json --max-new-tokens 250 --llm google/flan-t5-small --vlm1 ofa --vlm2 blip --include-profile --include-caption --include-choices --incontext --num-examples 2
+
+## Anoterh example: query Mistral-7B, with InstructBLIP-XL and XXL
+python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_mistral_cola2-da.json --max-new-tokens 250 --llm mistralai/Mistral-7B-v0.1 --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2
 
 
 # 4. Evaluate the predictions (multiple choice), see "evaluate.sh" for direct answer evalation.
@@ -147,14 +150,17 @@ python evaluation/eval_predictions.py \
 
 # 1. Finetune the language model, Cola-FT. Delete "--include-choices" for direct answer datasets. Need to "wandb login" before finetuning.
 export MODEL_NAME=aok_blip_ofa_ft
-WANDB_RUN_ID=${MODEL_NAME} python finetune/finetune.py \
+WANDB_RUN_ID=${MODEL_NAME} python query/finetune_flan.py \
 --data-dir ./datasets/ --dataset-name aokvqa --split train --val-split val \
---bs 16 --flan google/flan-t5-xxl --vlm1 blip --vlm2 ofa \
+--bs 16 --llm google/flan-t5-xxl --vlm1 blip --vlm2 ofa \
 --prediction-out placeholder --include-profile --include-caption --include-choices
+# Another example: finetune Mistral-7B or other decoder-only models
+export MODEL_NAME=aok_insblipt5xl_insblipt5xxl_mistral_ft
+WANDB_RUN_ID=${MODEL_NAME} python query/finetune_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split train --val-split val --bs 16 --llm mistralai/Mistral-7B-v0.1 --vlm1 insblipt5xl --vlm2 insblipt5xxl --prediction-out placeholder --include-profile --include-caption --include-choices
 
 # 2. Query the finetuned model. We don't suggest using few-shot in-context learning for finetuned models.
 
-python query/query_flan.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --max-length 250 --prediction-out ./predictions/aokvqa_colaft-da.json --max-length 250 --flan pretrained_models/${MODEL_NAME}/{the_epoch_you_test} --vlm1 blip --vlm2 ofa --include-choices --include-profile --include-caption
+python query/query_flan.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --max-new-tokens 250 --prediction-out ./predictions/aokvqa_colaft-da.json --max-new-tokens 250 --llm pretrained_models/${MODEL_NAME}/{the_epoch_you_test} --vlm1 blip --vlm2 ofa --include-choices --include-profile --include-caption
 
 # 3. Evaluate. The evaluation script is the same as Step 4 of Inference.
 ```

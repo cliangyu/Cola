@@ -14,11 +14,12 @@ def postprocess(predictions, phrase, device="cpu"):
     for q in tqdm(predictions.keys()):
         # predictions[q] = predictions[q].split('The answer is:')[-1] if 'The answer is:' in predictions[q] else predictions[q]
         predictions[q] = (
-            predictions[q].split(phrase)[-1].strip('"').strip(" .")
-            if phrase in predictions[q]
-            else predictions[q]
+            # predictions[q].split(phrase)[-1].strip('"').strip(" .")
+            predictions[q].split("A:")[1].split("\n")[0] # for mistral
+            # if phrase in predictions[q]
+            # else predictions[q]
         )
-
+        
     return predictions
 
 

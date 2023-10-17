@@ -23,6 +23,16 @@ from torch.utils.data import DataLoader
 from loguru import logger
 import gc
 
+from utils import (
+    parse_args,
+    prompt_element,
+    preprocess_language,
+    extract_group,
+    create_prompt,
+    extend_prompts,
+    create_question,
+)
+
 logger.remove()
 logger.add(
     sys.stdout,
@@ -30,39 +40,6 @@ logger.add(
     format="<green>{time:YYYY-MM-DD:HH:mm:ss}</green> | <cyan>{name}</cyan><cyan>:line {line}</cyan>: <level>{message}</level>",
     level="INFO",
 )
-
-
-def preprocess_language(flan_tokenizer, text, device="cuda:0"):
-    inputs_dict = flan_tokenizer.batch_encode_plus(
-        text, padding=True, truncation=True, return_tensors="pt"
-    )
-    input_ids = inputs_dict.input_ids.to(
-        device
-    )  # must be the first index of device map
-    attention_mask = inputs_dict.attention_mask.to(device)
-    return input_ids, attention_mask
-
-
-def extract_group(group, key):
-    return [item[key] for item in group]
-
-
-def create_prompt(group, prompt_prefix):
-    return [prompt_prefix for i in range(len(group))]
-
-
-def extend_prompts(prompts, texts):
-    if type(texts) is str:
-        texts = [texts for i in range(len(prompts))]
-    return [prompts[i] + texts[i] for i in range(len(prompts))]
-
-
-def preprocess_vlm_text(texts):
-    """Preprocess text for vlm model.
-    Lower case, add space before marks.
-    """
-    return [re.sub("([.,!?()])", r" \1 ", text.lower()) for text in texts]
-
 
 def run_ofa(args):
     # wandb.init(project="aokvqa", config=args)
@@ -87,7 +64,7 @@ def run_ofa(args):
         train_context = json.load(args.train_context_file)
         context = json.load(args.context_file)
 
-    ofa_dir = args.ofa_model_path if args.ofa_model_path else "./OFA-large"
+    ofa_dir = args.vlm_model_path if args.vlm_model_path else "./OFA-large"
     ofa_device = "cuda"
     ofa_tokenizer = OFATokenizer.from_pretrained(ofa_dir)
     ofa_model = OFAModel.from_pretrained(
