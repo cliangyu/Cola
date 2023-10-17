@@ -1,7 +1,3 @@
-"""
-This code is modified from
-https://github.com/abhimishra91/transformers-tutorials/blob/master/transformers_summarization_wandb.ipynb
-"""
 import re
 import torch
 import os
@@ -42,10 +38,6 @@ logger.add(
 )
 
 device = "cuda"
-
-# Creating the training function. This will be called in the main function. It is run depending on the epoch value.
-# The model is put into train mode and then we wnumerate over the training loader and passed to the defined network
-
 
 def train(
     args, epoch, tokenizer, model, device, loader, optimizer, train_set, **kwargs
@@ -89,20 +81,8 @@ def train(
         
         if args.include_rationale:
             targets = create_prompt(data, "Rationale:")
-
-            # # ground truth rationale
-            # target_rationales = [random.choice(k) for k in extract_group(data, "rationales")]
-            # the longest rationale
-            # target_rationales = [max(k, key=len) for k in extract_group(data, "rationales")]
             target_rationales = [" ".join(k) for k in extract_group(data, "rationales")]
             targets = extend_prompts(targets, target_rationales)
-
-            # # self-rationalization
-            # qids = extract_group(data, "question_id")
-            # group_rationalization = [rationalization[qid] for qid in qids]
-            # # add dot if not present
-            # group_rationalization = [r if r[-1] == '.' else r + '.' for r in group_rationalization]
-            # targets = extend_prompts(targets, group_rationalization)
 
             separator = "<extra_id_82>"
             if args.answer_factor is not None:
@@ -423,34 +403,18 @@ def main():
             vlm2_answers_train=vlm2_answers_train,
             vlm1_answers_train=vlm1_answers_train,
         )
-        if args.peft:
-            model.save_adapter(
-                os.path.join(
-                    args.model_output_dir,
-                    os.environ["WANDB_RUN_ID"],
-                    "{}_{}_bs{}_epoch{}_{}".format(
-                        args.llm,
-                        "language_profile" if args.include_profile else "wo_profile",
-                        args.bs,
-                        epoch,
-                        adapter_name,
-                    ),
+        model.save_pretrained(
+            os.path.join(
+                args.model_output_dir,
+                os.environ["WANDB_RUN_ID"],
+                "{}_{}_bs{}_epoch{}".format(
+                    args.llm,
+                    "language_profile" if args.include_profile else "wo_profile",
+                    args.bs,
+                    epoch,
                 ),
-                adapter_name,
             )
-        else:
-            model.save_pretrained(
-                os.path.join(
-                    args.model_output_dir,
-                    os.environ["WANDB_RUN_ID"],
-                    "{}_{}_bs{}_epoch{}".format(
-                        args.llm,
-                        "language_profile" if args.include_profile else "wo_profile",
-                        args.bs,
-                        epoch,
-                    ),
-                )
-            )
+        )
 
         if epoch % args.VAL_EPOCHS == 0:
             validate(
