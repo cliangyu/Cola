@@ -1,19 +1,11 @@
-import re
 import torch
-import os
 import random
 import json
-from tqdm import tqdm
-from PIL import Image
-import numpy as np
 import time
-import wandb
-from queue import Queue
 from utils import (
     parse_args,
     prompt_element,
     preprocess_language,
-    extract_group,
     create_prompt,
     extend_prompts,
     create_question,
