@@ -68,7 +68,8 @@ def run_llm(args):
     # Initiate llm model and tokenizer
     # llm_device = "cuda:{}".format(str(0))
     llm_device = "cuda"
-    llm_model = AutoModelForCausalLM.from_pretrained(args.llm, device_map='auto', torch_dtype=torch.float16 ).to(llm_device)
+    llm_model = AutoModelForCausalLM.from_pretrained(args.llm, device_map='auto', torch_dtype=torch.bfloat16).to(llm_device)
+    # args.llm = 'mistralai/Mistral-7B-v0.1' # for debug only
     llm_tokenizer = AutoTokenizer.from_pretrained(args.llm, padding_side='left')
     if llm_tokenizer.pad_token is None:
         llm_tokenizer.pad_token = llm_tokenizer.eos_token

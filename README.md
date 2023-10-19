@@ -119,6 +119,11 @@ python query/query_flan.py --data-dir ./datasets/ --dataset-name aokvqa --split 
 ## Anoterh example: query Mistral-7B, with InstructBLIP-XL and XXL
 python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_mistral_cola2-da.json --max-new-tokens 250 --llm mistralai/Mistral-7B-v0.1 --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2
 
+## Anoterh example: query Mistral-7B, on test set of aokvqa
+python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split test --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_mistral_cola2_test-da.json --max-new-tokens 250 --llm mistralai/Mistral-7B-v0.1 --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2
+
+## Anoterh example: query Vicuna-7B, on test set of aokvqa
+python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split test --vlm-task vqa --bs 16 --prediction-out ./predictions/aokvqa_vicuna_cola2_test-da.json --max-new-tokens 250 --llm lmsys/vicuna-7b-v1.5-16k --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2 
 
 # 4. Evaluate the predictions (multiple choice), see "evaluate.sh" for direct answer evalation.
 export PYTHONPATH=.
@@ -161,6 +166,9 @@ WANDB_RUN_ID=${MODEL_NAME} python query/finetune_llm.py --data-dir ./datasets/ -
 # 2. Query the finetuned model. We don't suggest using few-shot in-context learning for finetuned models.
 
 python query/query_flan.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --max-new-tokens 250 --prediction-out ./predictions/aokvqa_colaft-da.json --max-new-tokens 250 --llm pretrained_models/${MODEL_NAME}/{the_epoch_you_test} --vlm1 blip --vlm2 ofa --include-choices --include-profile --include-caption
+
+# Another example: query vicuna model on the test set of aokvqa
+python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split test --vlm-task vqa --bs 16 --prediction-out ./predictions/aokvqa_vicuna_colaft-da.json --max-new-tokens 250 --llm ./pretrained_models/aok_insblipt5xl_insblipt5xxl_vicuna_ft/lmsys/vicuna-7b-v1.5-16k_language_profile_bs16_epoch0 --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices
 
 # 3. Evaluate. The evaluation script is the same as Step 4 of Inference.
 ```

@@ -15,7 +15,8 @@ def postprocess(predictions, phrase, device="cpu"):
         # predictions[q] = predictions[q].split('The answer is:')[-1] if 'The answer is:' in predictions[q] else predictions[q]
         predictions[q] = (
             # predictions[q].split(phrase)[-1].strip('"').strip(" .")
-            predictions[q].split("A:")[1].split("\n")[0] # for mistral
+            # predictions[q].split("A:")[1].split("\n")[0] # for mistral
+            predictions[q].split("\n")[0] # for vicuna
             # if phrase in predictions[q]
             # else predictions[q]
         )

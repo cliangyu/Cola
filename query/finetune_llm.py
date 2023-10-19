@@ -121,29 +121,36 @@ def train(
             optimizer.step()
             optimizer.zero_grad()
         
-
-def masking(input_ids, masking_number: int = -100):  
-    # hardcoded for mistral to find "A:" that breaks the question/answer
+def masking(input_ids, masking_number: int = -100, tokens: list = [29909, 29901]):
+    """
+    This function is designed to mask input_ids after a specific pattern, denoted by the tokens list.
+    The pattern could be of any length.
+    Currently hardcoded for models like mistral to find specific patterns that break the question/answer sequence.
+    """
+    # Initialize labels with masking_number
     labels = masking_number * torch.ones(input_ids.shape, dtype=torch.int64).to('cuda', non_blocking=True)
     
+    token_length = len(tokens)  # Get the length of the tokens to match
+    
     for i in range(input_ids.shape[0]):
-        # Find all occurrences of the pattern 28741, 28747
+        # Find all occurrences of the pattern in tokens
         occurrences = 0
-        for j in range(input_ids.shape[1] - 1):
-            if input_ids[i][j] == 28741 and input_ids[i][j + 1] == 28747:
+        for j in range(input_ids.shape[1] - token_length + 1):
+            if all(input_ids[i][j + k] == tokens[k] for k in range(token_length)):
                 occurrences += 1
 
-        # Assert that the pattern exists only once
-        assert occurrences == 1, f"Pattern [28741, 28747] found {occurrences} times in sample {i}"
+        # # Assert that the pattern exists only once
+        # assert occurrences == 1, f"Pattern found {occurrences} times in sample {i}"
 
-        # Find the breakpoint where we have the 2 consecutive tokens 28741, 28747
-        for j in range(input_ids.shape[1] - 1):
-            if input_ids[i][j] == 28741 and input_ids[i][j + 1] == 28747:
-                breakpoint = j + 2
+        # Find the breakpoint where we have the consecutive tokens
+        for j in range(input_ids.shape[1] - token_length + 1):
+            if all(input_ids[i][j + k] == tokens[k] for k in range(token_length)):
+                breakpoint = j + token_length
                 labels[i][breakpoint:] = input_ids[i][breakpoint:]
                 break
                 
     return labels
+
 
 
 def validate(
