@@ -40,8 +40,9 @@ We use a language model (LM) to aggregate the outputs of 2+ vision-language mode
 
 <p align="center">
   <a href="https://openreview.net/forum?id=kdHpWogtX6Y" target='_blank'>[arXiv]</a> •
-  <a href="https://www.youtube.com/watch?v=Tp5SN8AqYZE&ab_channel=AIJournalClub" target='_blank'>[talk (中文)]</a> • English talk coming soon
-</p>
+  <a href="https://cohere.com/events/c4ai-Liangyu-Chen-2023" target='_blank'>[talk (English)]</a> •
+  <a href="https://www.youtube.com/watch?v=Tp5SN8AqYZE&ab_channel=AIJournalClub" target='_blank'>[talk (中文)]</a> •
+  <a href="https://twitter.com/cliangyu_/status/1716756097141461433" target='_blank'>[tweet]</a>
 
 </div>
 
@@ -178,6 +179,15 @@ python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split t
 If you use this code in your research, please kindly cite this work.
 
 ```bibtex
+@misc{chen2023large,
+      title={Large Language Models are Visual Reasoning Coordinators}, 
+      author={Liangyu Chen and Bo Li and Sheng Shen and Jingkang Yang and Chunyuan Li and Kurt Keutzer and Trevor Darrell and Ziwei Liu},
+      year={2023},
+      eprint={2310.15166},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+
 @inproceedings{
 chen2023language,
 title={Language Models are Visual Reasoning Coordinators},
