@@ -9,7 +9,7 @@ import sys
 import random
 
 sys.path.append(str(pathlib.Path(__file__).parent.parent.absolute()))
-# print(sys.pathn)
+# print(sys.path)
 from torch.utils.data import Dataset
 from torchvision import transforms
 import time
@@ -103,7 +103,7 @@ class VisualReasoningDataset(Dataset):
         self.include_image = include_image
         self.transform = transform
 
-        # assume aokqvqa is in the same dir as coco
+        # assume aokvqa is in the same dir as coco
         if dataset_name in ["aokvqa", "okvqa", "vqav2"]:
             self.image_path_finder = os.path.join(dataset_dir, "coco")
         elif dataset_name == "esnlive":

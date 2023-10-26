@@ -302,7 +302,7 @@ def main():
     torch.backends.cudnn.deterministic = True
     wandb.init(config=args, project="fine_tune_flan", entity="liangyu")
 
-    # tokenzier for encoding the text
+    # tokenizer for encoding the text
     tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-small")
 
     # Creating the Training and Validation dataset

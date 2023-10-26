@@ -126,7 +126,7 @@ python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split t
 ## Another example: query Vicuna-7B, on test set of aokvqa
 python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split test --vlm-task vqa --bs 16 --prediction-out ./predictions/aokvqa_vicuna_cola2_test-da.json --max-new-tokens 250 --llm lmsys/vicuna-7b-v1.5-16k --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2 
 
-# 4. Evaluate the predictions (multiple choice), see "evaluate.sh" for direct answer evalation.
+# 4. Evaluate the predictions (multiple choice), see "evaluate.sh" for direct answer evaluation.
 export PYTHONPATH=.
 export DATA_DIR=./datasets/
 export DATASET=aokvqa

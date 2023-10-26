@@ -279,7 +279,7 @@ def main():
     torch.backends.cudnn.deterministic = True
     wandb.init(config=args, project="fine_tune_llm", entity="liangyu")
 
-    # tokenzier for encoding the text
+    # tokenizer for encoding the text
     tokenizer = AutoTokenizer.from_pretrained(args.llm, padding_side='left')
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
