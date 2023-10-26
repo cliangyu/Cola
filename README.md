@@ -117,13 +117,13 @@ python query/query_ofa.py --vlm-model-path ../OFA-large --data-dir ./datasets/ -
 
 python query/query_flan.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_cola2-da.json --max-new-tokens 250 --llm google/flan-t5-small --vlm1 ofa --vlm2 blip --include-profile --include-caption --include-choices --incontext --num-examples 2
 
-## Anoterh example: query Mistral-7B, with InstructBLIP-XL and XXL
+## Another example: query Mistral-7B, with InstructBLIP-XL and XXL
 python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split val --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_mistral_cola2-da.json --max-new-tokens 250 --llm mistralai/Mistral-7B-v0.1 --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2
 
-## Anoterh example: query Mistral-7B, on test set of aokvqa
+## Another example: query Mistral-7B, on test set of aokvqa
 python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split test --vlm-task vqa --bs 128 --prediction-out ./predictions/aokvqa_mistral_cola2_test-da.json --max-new-tokens 250 --llm mistralai/Mistral-7B-v0.1 --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2
 
-## Anoterh example: query Vicuna-7B, on test set of aokvqa
+## Another example: query Vicuna-7B, on test set of aokvqa
 python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split test --vlm-task vqa --bs 16 --prediction-out ./predictions/aokvqa_vicuna_cola2_test-da.json --max-new-tokens 250 --llm lmsys/vicuna-7b-v1.5-16k --vlm1 insblipt5xl --vlm2 insblipt5xxl --include-profile --include-caption --include-choices --incontext --num-examples 2 
 
 # 4. Evaluate the predictions (multiple choice), see "evaluate.sh" for direct answer evalation.
