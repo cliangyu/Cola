@@ -179,13 +179,11 @@ python query/query_llm.py --data-dir ./datasets/ --dataset-name aokvqa --split t
 If you use this code in your research, please kindly cite this work.
 
 ```bibtex
-@misc{chen2023large,
-      title={Large Language Models are Visual Reasoning Coordinators}, 
-      author={Liangyu Chen and Bo Li and Sheng Shen and Jingkang Yang and Chunyuan Li and Kurt Keutzer and Trevor Darrell and Ziwei Liu},
-      year={2023},
-      eprint={2310.15166},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@article{chen2023large,
+  title={Large Language Models are Visual Reasoning Coordinators},
+  author={Chen, Liangyu and Li, Bo and Shen, Sheng and Yang, Jingkang and Li, Chunyuan and Keutzer, Kurt and Darrell, Trevor and Liu, Ziwei},
+  journal={arXiv preprint arXiv:2310.15166},
+  year={2023}
 }
 
 @inproceedings{
