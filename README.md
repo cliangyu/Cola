@@ -182,7 +182,7 @@ If you use this code in your research, please kindly cite this work.
 @article{chen2023large,
   title={Large Language Models are Visual Reasoning Coordinators},
   author={Chen, Liangyu and Li, Bo and Shen, Sheng and Yang, Jingkang and Li, Chunyuan and Keutzer, Kurt and Darrell, Trevor and Liu, Ziwei},
-  journal={arXiv preprint arXiv:2310.15166},
+  journal={Advances in Neural Information Processing Systems},
   year={2023}
 }
 
